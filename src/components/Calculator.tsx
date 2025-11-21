@@ -2,18 +2,17 @@
 
 import React, { useState, useMemo } from 'react';
 import { translations, Language } from '../lib/i18n';
-import { calculateRetirement, CalculationParams, CONSTANTS } from '../lib/calculate';
+import { calculateRetirement, CalculationParams, CONSTANTS, CityTier } from '../lib/calculate';
 import { formatCurrency } from '../lib/utils';
 import { RetirementChart } from './RetirementChart';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Switch } from './ui/switch';
 import { Button } from './ui/button';
-import { TrendingUp, Wallet, Home, Car, Baby, Wind, RotateCcw, Plus, Minus, Rocket, Zap, AlertTriangle, Skull } from 'lucide-react';
+import { TrendingUp, Wallet, Home, Car, Baby, MapPin, RotateCcw, Plus, Minus, Rocket, Zap, AlertTriangle, Skull } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 
-// Stepper Component (Vibrant Style)
 const Stepper = ({ value, onChange, min = 0, max = 10 }: any) => (
   <div className="flex items-center gap-2 bg-indigo-50/50 rounded-lg p-1 border border-indigo-100">
     <button 
@@ -41,25 +40,26 @@ export function CalculatorApp() {
   const locale = lang === 'zh' ? 'zh-CN' : 'en-US';
 
   const defaultParams: CalculationParams = {
-    currentAge: 28,
-    currentSavings: 100000,
-    annualIncome: 200000,
-    monthlyPersonalExpenses: 5000,
-    monthlyRent: 3000,
-    incomeGrowth: 8,
+    currentAge: 0,
+    currentSavings: 0,
+    annualIncome: 0,
+    monthlyPersonalExpenses: 0,
+    monthlyRent: 0,
+    incomeGrowth: 0,
     buyHouse: false,
-    houseCost: 2000000,
+    houseCost: 0,
     buyCar: false,
-    carCost: 200000,
+    carCost: 0,
     kidsCount: 0,
-    kidCost: 30000,
+    cityTier: 'tier1',
+    // kidCost derived
   };
 
   const [params, setParams] = useState<CalculationParams>(defaultParams);
 
   const updateParam = (key: keyof CalculationParams, value: any) => {
     let finalValue = value;
-    if (typeof value === 'string') {
+    if (typeof value === 'string' && key !== 'cityTier') {
       if (value === '') finalValue = 0;
       else finalValue = Number(value);
     }
@@ -74,7 +74,6 @@ export function CalculatorApp() {
     setLang(prev => prev === 'zh' ? 'en' : 'zh');
   };
 
-  // Theme determination based on result (Vibrant Logic)
   const getTheme = () => {
     switch (result.theme) {
       case 'peace': return { 
@@ -112,6 +111,7 @@ export function CalculatorApp() {
 
   const theme = getTheme();
   const isDark = result.theme === 'void';
+  const derivedKidCost = CONSTANTS.TIER_COSTS[params.cityTier];
 
   return (
     <div className={`min-h-screen transition-colors duration-700 ease-in-out p-4 md:p-8 font-sans ${theme.bg}`}>
@@ -129,7 +129,7 @@ export function CalculatorApp() {
                 <theme.icon className="w-6 h-6" />
               </div>
               <span className={`px-3 py-1 backdrop-blur border rounded-full text-xs font-semibold tracking-wider uppercase ${isDark ? 'bg-white/10 border-white/20 text-red-400' : 'bg-white/50 border-indigo-100 text-indigo-600'}`}>
-                Retirement Simulator v2.0
+                FIRE Calculator v3.0
               </span>
             </div>
             <h1 className={`text-4xl font-extrabold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>{t.title}</h1>
@@ -154,7 +154,7 @@ export function CalculatorApp() {
             animate={{ opacity: 1, x: 0 }}
           >
             {/* Personal Finance */}
-            <Card className={`border-0 shadow-xl backdrop-blur-xl overflow-hidden group hover:shadow-2xl transition-all duration-500 ring-1 ${isDark ? 'bg-zinc-800/80 ring-white/10' : 'bg-white/80 ring-white/50'}`}>
+            <Card className={`border-0 shadow-xl backdrop-blur-xl overflow-hidden transition-all duration-500 ring-1 ${isDark ? 'bg-zinc-800/80 ring-white/10' : 'bg-white/80 ring-white/50'}`}>
               <div className="h-1 w-full bg-gradient-to-r from-violet-500 to-fuchsia-500" />
               <CardHeader className="pb-4">
                 <CardTitle className={`text-lg font-bold flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-800'}`}>
@@ -228,17 +228,30 @@ export function CalculatorApp() {
                    </div>
                 </div>
 
-                <div className="space-y-2">
-                    <Label className={`text-xs font-semibold uppercase tracking-wide ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>{t.inputs.incomeGrowth}</Label>
-                    <div className="relative">
-                      <Input 
-                        type="number" 
-                        value={getDisplayValue(params.incomeGrowth)}
-                        onChange={(e) => updateParam('incomeGrowth', e.target.value)}
-                        className={isDark ? 'bg-emerald-900/20 border-emerald-800 text-emerald-400' : 'bg-emerald-50/50 border-emerald-100 text-emerald-700'}
-                      />
-                      <span className={`absolute right-3 top-2.5 font-bold ${isDark ? 'text-emerald-500' : 'text-emerald-400'}`}>%</span>
-                    </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                      <Label className={`text-xs font-semibold uppercase tracking-wide ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>{t.inputs.incomeGrowth}</Label>
+                      <div className="relative">
+                        <Input 
+                          type="number" 
+                          value={getDisplayValue(params.incomeGrowth)}
+                          onChange={(e) => updateParam('incomeGrowth', e.target.value)}
+                          className={isDark ? 'bg-emerald-900/20 border-emerald-800 text-emerald-400' : 'bg-emerald-50/50 border-emerald-100 text-emerald-700'}
+                        />
+                        <span className={`absolute right-3 top-2.5 font-bold ${isDark ? 'text-emerald-500' : 'text-emerald-400'}`}>%</span>
+                      </div>
+                  </div>
+                  <div className="space-y-2 opacity-80">
+                      <Label className={`text-xs font-semibold uppercase tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t.inputs.inflation}</Label>
+                      <div className="relative">
+                        <Input 
+                          disabled
+                          value={CONSTANTS.INFLATION}
+                          className={isDark ? 'bg-white/10 border-white/10 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-500'}
+                        />
+                        <span className="absolute right-3 top-2.5 font-bold opacity-50">%</span>
+                      </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -248,6 +261,29 @@ export function CalculatorApp() {
               <div className="h-1 w-full bg-gradient-to-r from-pink-500 to-rose-500" />
               <CardContent className="pt-6 space-y-6">
                  
+                 {/* City Tier */}
+                 <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-indigo-500" />
+                        <Label className={`text-xs font-semibold uppercase tracking-wide ${isDark ? 'text-slate-300' : 'text-slate-500'}`}>{t.inputs.cityTier}</Label>
+                    </div>
+                    <div className="grid grid-cols-1 gap-2">
+                      {(['tier1', 'tier2', 'tier3'] as CityTier[]).map((tier) => (
+                        <button
+                          key={tier}
+                          onClick={() => updateParam('cityTier', tier)}
+                          className={`text-left px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                            params.cityTier === tier 
+                              ? (isDark ? 'bg-white text-black' : 'bg-indigo-600 text-white shadow-md')
+                              : (isDark ? 'bg-white/5 text-slate-400 hover:bg-white/10' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50')
+                          }`}
+                        >
+                          {t.inputs.tiers[tier]}
+                        </button>
+                      ))}
+                    </div>
+                 </div>
+
                  {/* Kids */}
                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -260,19 +296,18 @@ export function CalculatorApp() {
                  <AnimatePresence>
                     {params.kidsCount > 0 && (
                       <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}>
-                         <Label className={`text-xs font-semibold uppercase tracking-wide mb-2 block ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>{t.inputs.kidCost}</Label>
-                         <div className="relative">
-                            <span className="absolute left-3 top-2.5 text-slate-400">{currency}</span>
-                            <Input 
-                              type="number" 
-                              value={getDisplayValue(params.kidCost)}
-                              onChange={(e) => updateParam('kidCost', e.target.value)}
-                              className={`pl-8 ${isDark ? 'bg-black/30 border-zinc-700 text-white focus:border-red-500' : 'bg-white border-pink-100 focus:border-pink-500'}`}
-                            />
+                         <div className={`p-3 rounded-lg border ${isDark ? 'bg-white/5 border-white/10' : 'bg-pink-50/50 border-pink-100'}`}>
+                           <div className="flex justify-between items-center">
+                              <span className={`text-xs font-bold uppercase ${isDark ? 'text-pink-400' : 'text-pink-600'}`}>{t.inputs.kidCostRef}</span>
+                              <span className={`font-bold ${isDark ? 'text-white' : 'text-pink-700'}`}>{formatCurrency(derivedKidCost, currency, locale)}/yr</span>
+                           </div>
+                           <p className="text-[10px] text-slate-400 mt-1">Based on {t.inputs.tiers[params.cityTier]}</p>
                          </div>
                       </motion.div>
                     )}
                  </AnimatePresence>
+
+                 <div className="h-px w-full bg-gradient-to-r from-transparent via-slate-200 to-transparent opacity-50" />
 
                  {/* House */}
                  <div className={`p-3 rounded-xl transition-colors ${isDark ? 'bg-white/5' : 'bg-white/40 hover:bg-white/60'}`}>

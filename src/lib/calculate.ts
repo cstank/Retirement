@@ -1,23 +1,31 @@
+export type CityTier = 'tier1' | 'tier2' | 'tier3';
+
 export interface CalculationParams {
   currentAge: number;
   currentSavings: number;
   annualIncome: number;
-  monthlyPersonalExpenses: number; // Renamed
-  monthlyRent: number; // New
+  monthlyPersonalExpenses: number;
+  monthlyRent: number;
   incomeGrowth: number;
   buyHouse: boolean;
   houseCost: number;
   buyCar: boolean;
   carCost: number;
-  kidsCount: number; // Just count
-  kidCost: number;
+  kidsCount: number;
+  cityTier: CityTier; // New
+  // kidCost is now derived from cityTier
 }
 
 export const CONSTANTS = {
-  INFLATION: 2.5,
+  INFLATION: 2.5, // Base inflation
   INVESTMENT_RETURN: 5.0,
   WITHDRAWAL_RATE: 0.04,
   KID_DEPENDENCY_YEARS: 20,
+  TIER_COSTS: {
+    tier1: 100000, // Approx 100k/year
+    tier2: 60000,  // Approx 60k/year
+    tier3: 35000,  // Approx 35k/year
+  }
 };
 
 export interface YearData {
@@ -36,7 +44,7 @@ export interface CalculationResult {
   data: YearData[];
   achievable: boolean;
   savingsRate: number;
-  theme: 'peace' | 'worry' | 'panic' | 'void'; // Morandi themed emotions
+  theme: 'peace' | 'worry' | 'panic' | 'void';
 }
 
 export function calculateRetirement(params: CalculationParams): CalculationResult {
@@ -52,19 +60,16 @@ export function calculateRetirement(params: CalculationParams): CalculationResul
     buyCar,
     carCost,
     kidsCount,
-    kidCost,
+    cityTier
   } = params;
 
-  // Initial Annual Expenses
-  // If buyHouse is TRUE, we assume Rent is eliminated immediately (simplified)
-  // Realistically, buying house means: Savings - HouseCost. Expenses = Personal (Rent gone).
-  // If buyHouse is FALSE, Expenses = Personal + Rent.
   const annualRent = buyHouse ? 0 : monthlyRent * 12;
   const annualBaseExpenses = (monthlyPersonalExpenses * 12) + annualRent;
   
+  // Derived kid cost
+  const kidCost = CONSTANTS.TIER_COSTS[cityTier];
   const annualKidExpense = kidsCount * kidCost;
 
-  // Savings Rate (Year 0)
   const totalInitialExpenses = annualBaseExpenses + annualKidExpense;
   const savingsRate = annualIncome > 0 ? ((annualIncome - totalInitialExpenses) / annualIncome) * 100 : 0;
 
